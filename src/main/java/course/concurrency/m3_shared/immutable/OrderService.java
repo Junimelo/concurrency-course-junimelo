@@ -15,21 +15,24 @@ public class OrderService {
 
     public synchronized long createOrder(List<Item> items) {
         long id = nextId();
-        Order order = new Order(items);
-        order.setId(id);
+        Order order = new Order.Builder().setId(id).setItems(items).setStatus(Order.Status.NEW).build();
         currentOrders.put(id, order);
         return id;
     }
 
     public synchronized void updatePaymentInfo(long orderId, PaymentInfo paymentInfo) {
-        currentOrders.get(orderId).setPaymentInfo(paymentInfo);
+        Order current = currentOrders.get(orderId);
+        current = new Order.Builder().setAllFromOrder(current).setPaymentInfo(paymentInfo).build();
+        currentOrders.put(orderId, current);
         if (currentOrders.get(orderId).checkStatus()) {
             deliver(currentOrders.get(orderId));
         }
     }
 
     public synchronized void setPacked(long orderId) {
-        currentOrders.get(orderId).setPacked(true);
+        Order current = currentOrders.get(orderId);
+        current = new Order.Builder().setAllFromOrder(current).setPacked(true).build();
+        currentOrders.put(orderId, current);
         if (currentOrders.get(orderId).checkStatus()) {
             deliver(currentOrders.get(orderId));
         }
@@ -37,7 +40,9 @@ public class OrderService {
 
     private synchronized void deliver(Order order) {
         /* ... */
-        currentOrders.get(order.getId()).setStatus(Order.Status.DELIVERED);
+        Order current = currentOrders.get(order.getId());
+        current = new Order.Builder().setAllFromOrder(current).setStatus(Order.Status.DELIVERED).build();
+        currentOrders.put(order.getId(), current);
     }
 
     public synchronized boolean isDelivered(long orderId) {

@@ -2,21 +2,22 @@ package course.concurrency.m3_shared.immutable;
 
 import java.util.List;
 
-import static course.concurrency.m3_shared.immutable.Order.Status.NEW;
-
-public class Order {
+public final class Order {
 
     public enum Status { NEW, IN_PROGRESS, DELIVERED }
 
-    private Long id;
-    private List<Item> items;
-    private PaymentInfo paymentInfo;
-    private boolean isPacked;
-    private Status status;
+    private final Long id;
+    private final List<Item> items;
+    private final PaymentInfo paymentInfo;
+    private final boolean isPacked;
+    private final Status status;
 
-    public Order(List<Item> items) {
+    public Order(Long id, List<Item> items, PaymentInfo paymentInfo, boolean isPacked, Status status) {
+        this.id = id;
         this.items = items;
-        this.status = NEW;
+        this.paymentInfo = paymentInfo;
+        this.isPacked = isPacked;
+        this.status = status;
     }
 
     public synchronized boolean checkStatus() {
@@ -30,10 +31,6 @@ public class Order {
         return id;
     }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
     public List<Item> getItems() {
         return items;
     }
@@ -42,25 +39,58 @@ public class Order {
         return paymentInfo;
     }
 
-    public void setPaymentInfo(PaymentInfo paymentInfo) {
-        this.paymentInfo = paymentInfo;
-        this.status = Status.IN_PROGRESS;
-    }
-
     public boolean isPacked() {
         return isPacked;
-    }
-
-    public void setPacked(boolean packed) {
-        isPacked = packed;
-        this.status = Status.IN_PROGRESS;
     }
 
     public Status getStatus() {
         return status;
     }
 
-    public void setStatus(Status status) {
-        this.status = status;
+    public static class Builder {
+        private Long id;
+        private List<Item> items;
+        private PaymentInfo paymentInfo;
+        private boolean isPacked;
+        private Status status;
+
+
+        public Builder setAllFromOrder(Order order) {
+            this.id = order.id;
+            this.items = order.items;
+            this.paymentInfo = order.paymentInfo;
+            this.isPacked = order.isPacked;
+            this.status = order.status;
+            return this;
+        }
+
+        public Builder setId(Long id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder setItems(List<Item> items) {
+            this.items = items;
+            return this;
+        }
+
+        public Builder setPaymentInfo(PaymentInfo paymentInfo) {
+            this.paymentInfo = paymentInfo;
+            return this;
+        }
+
+        public Builder setPacked(boolean packed) {
+            isPacked = packed;
+            return this;
+        }
+
+        public Builder setStatus(Status status) {
+            this.status = status;
+            return this;
+        }
+
+        public synchronized Order build() {
+            return new Order(this.id, this.items, this.paymentInfo, this.isPacked, this.status);
+        }
     }
 }
