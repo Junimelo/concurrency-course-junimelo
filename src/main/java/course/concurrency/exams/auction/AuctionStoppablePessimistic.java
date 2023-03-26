@@ -2,19 +2,27 @@ package course.concurrency.exams.auction;
 
 public class AuctionStoppablePessimistic implements AuctionStoppable {
 
-    private Notifier notifier;
+    private final Notifier notifier;
+
+    private volatile Bid latestBid = new Bid(-1L, -1L, -1L);
+    private volatile boolean isOpen = true;
+
+    private final Object lock = new Object();
 
     public AuctionStoppablePessimistic(Notifier notifier) {
         this.notifier = notifier;
     }
 
-    private Bid latestBid;
-
     public boolean propose(Bid bid) {
-        if (bid.getPrice() > latestBid.getPrice()) {
-            notifier.sendOutdatedMessage(latestBid);
-            latestBid = bid;
-            return true;
+        // this condition filter bids with lower price and seriously reduce contention
+        if (isOpen && (bid.getPrice() > latestBid.getPrice())) {
+            synchronized (lock) {
+                if (isOpen && (bid.getPrice() > latestBid.getPrice())) {
+                    notifier.sendOutdatedMessage(latestBid);
+                    latestBid = bid;
+                    return true;
+                }
+            }
         }
         return false;
     }
@@ -24,6 +32,11 @@ public class AuctionStoppablePessimistic implements AuctionStoppable {
     }
 
     public Bid stopAuction() {
-        return latestBid;
+        // these block prevents situation when synchronized block in line 19 is passed and isOpen is changed immediately
+        // actually, it can be omitted in most cases as requirements are rarely so strict
+        synchronized (lock) {
+            isOpen = false;
+            return latestBid;
+        }
     }
 }
